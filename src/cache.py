@@ -57,8 +57,8 @@ def precompute_all(label_filter: tuple[str, ...] = ("A", "C")) -> None:
         sigma = eeg.std(axis=1,  keepdims=True)
         eeg_norm = (eeg - mu) / (sigma + 1e-8)
 
-        # Epoch
-        epochs = segment_recording(eeg_norm)
+        # Epoch (with overlapping windows)
+        epochs = segment_recording(eeg_norm, stride_sec=cfg.EPOCH_STRIDE_SEC)
         n_epochs = len(epochs)
 
         if n_epochs == 0:

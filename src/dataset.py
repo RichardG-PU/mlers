@@ -65,11 +65,29 @@ class EEGDataset(Dataset):
         rbp = rbp + torch.randn_like(rbp) * 0.01
         scc = scc + torch.randn_like(scc) * 0.01
 
-        # 2. Random time-window dropout: zero 1-2 sub-windows with prob 0.3
-        if torch.rand(1).item() < 0.3:
-            n_drop = torch.randint(1, 3, (1,)).item()
+        # 2. Amplitude scaling per channel: Uniform(0.8, 1.2)
+        scale = 0.8 + 0.4 * torch.rand(1, 1, rbp.shape[2])  # (1, 1, 19)
+        rbp = rbp * scale
+        scc = scc * scale
+
+        # 3. Random time-window dropout: zero 1-3 sub-windows with prob 0.4
+        if torch.rand(1).item() < 0.4:
+            n_drop = torch.randint(1, 4, (1,)).item()
             drop_idx = torch.randperm(rbp.shape[0])[:n_drop]
             rbp[drop_idx] = 0.0
             scc[drop_idx] = 0.0
+
+        # 4. Channel dropout (p=0.2): zero 1-3 random channels
+        if torch.rand(1).item() < 0.2:
+            n_ch_drop = torch.randint(1, 4, (1,)).item()
+            ch_idx = torch.randperm(rbp.shape[2])[:n_ch_drop]
+            rbp[:, :, ch_idx] = 0.0
+            scc[:, :, ch_idx] = 0.0
+
+        # 5. Frequency band masking (p=0.2): zero 1 random band
+        if torch.rand(1).item() < 0.2:
+            band_idx = torch.randint(0, rbp.shape[1], (1,)).item()
+            rbp[:, band_idx, :] = 0.0
+            scc[:, band_idx, :] = 0.0
 
         return rbp, scc

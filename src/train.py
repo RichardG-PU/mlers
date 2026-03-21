@@ -46,8 +46,12 @@ def _train_epoch(model, loader, criterion, optimizer, device):
 
         optimizer.zero_grad()
         logits = model(rbp, scc)
+        # Label smoothing
+        eps = cfg.LABEL_SMOOTH
+        labels = labels * (1 - eps) + (1 - labels) * eps
         loss   = criterion(logits, labels)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.GRAD_CLIP)
         optimizer.step()
         total_loss += loss.item() * len(labels)
 
@@ -159,3 +163,48 @@ def run_loocv(manifest: dict) -> list[tuple]:
               f"  {'✓' if pred_label == true_label else '✗'}")
 
     return fold_results
+
+
+def train_final_model(manifest: dict, n_epochs: int | None = None) -> str:
+    """
+    Train a single model on ALL labeled subjects (no held-out).
+
+    Args:
+        manifest:  Dict from manifest.json.
+        n_epochs:  Training epochs.  If None, uses cfg.N_EPOCHS.
+
+    Returns:
+        Path to the saved checkpoint.
+    """
+    set_seed()
+    device = cfg.DEVICE
+    cfg.CKPT_DIR.mkdir(parents=True, exist_ok=True)
+    ckpt_path = cfg.CKPT_DIR / "final_model.pt"
+
+    all_sids = list(manifest.keys())
+    n_train = n_epochs or cfg.N_EPOCHS
+
+    print(f"\nTraining final model on all {len(all_sids)} subjects for {n_train} epochs...")
+
+    train_ds = EEGDataset(all_sids, manifest, augment=True)
+    train_loader = DataLoader(train_ds, batch_size=cfg.BATCH_SIZE,
+                              shuffle=True, drop_last=False, num_workers=0)
+
+    model = DICENet().to(device)
+    pos_weight = _compute_pos_weight(all_sids, manifest).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = torch.optim.AdamW(model.parameters(),
+                                  lr=cfg.LR, weight_decay=cfg.WEIGHT_DECAY)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=n_train, eta_min=1e-5
+    )
+
+    for epoch in range(1, n_train + 1):
+        train_loss = _train_epoch(model, train_loader, criterion, optimizer, device)
+        scheduler.step()
+        if epoch % 10 == 0:
+            print(f"  ep {epoch:>3}  train={train_loss:.4f}")
+
+    torch.save(model.state_dict(), ckpt_path)
+    print(f"  Final model saved → {ckpt_path}")
+    return str(ckpt_path)

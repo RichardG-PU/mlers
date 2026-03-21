@@ -106,7 +106,7 @@ def extract_all_features(eeg, feature_names=None):
 # ---- Main Inference ----
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_folder", help="Folder with .npy EEG files to classify")
+    parser.add_argument("new-data", help="Folder with .npy EEG files to classify")
     parser.add_argument("--model", default="output/xgb_ad_cn.json", help="Path to trained model")
     parser.add_argument("--features", default="output/feature_names.txt", help="Path to feature names txt")
     parser.add_argument("--out", default="predictions.csv", help="Output CSV file")
@@ -120,10 +120,11 @@ def main():
         feature_names = [line.strip() for line in f]
     # Classify all .npy files
     results = []
-    for fname in sorted(os.listdir(args.data_folder)):
+    data_folder = getattr(args, 'new-data')
+    for fname in sorted(os.listdir(data_folder)):
         if not fname.endswith(".npy"): continue
         sid = os.path.splitext(fname)[0]
-        eeg = np.load(os.path.join(args.data_folder, fname), allow_pickle=True)
+        eeg = np.load(os.path.join(data_folder, fname), allow_pickle=True)
         if eeg.shape[0] != 19:
             print(f"Skipping {fname}: expected 19 channels, got {eeg.shape[0]}")
             continue

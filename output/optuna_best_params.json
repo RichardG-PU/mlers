@@ -1,0 +1,12 @@
+{
+  "best_auc": 0.9345767893271436,
+  "params": {
+    "max_depth": 4,
+    "learning_rate": 0.07034332942819792,
+    "min_child_weight": 3,
+    "subsample": 0.7931789513499803,
+    "colsample_bytree": 0.4246432473057397,
+    "reg_lambda": 9.796378906751496,
+    "gamma": 0.8152001029863726
+  }
+}

@@ -4,25 +4,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Context
 
-EEG-based neurological condition classification challenge (AD / CN / FTD). The full task definition, data format, and evaluation criteria are in `Challenge_EEG.pdf` — read it before writing any code.
+EEG-based neurological condition classification challenge (AD / CN / FTD). The full task definition, data format, and evaluation criteria are in `Challenge_EEG.pdf`. This implementation targets **AD vs CN** binary classification using DICE-net (dual-branch CNN + Transformer).
+
+## Execution Order
+
+```bash
+pip install PyWavelets              # one-time dep not bundled with Python
+python scripts/precompute_features.py   # ~5-15 min; run once
+python scripts/train_ad_cn.py           # LOOCV training + evaluation
+```
 
 ## Data Layout
 
 ```
 training/
   train_label_mapping.csv   # anonymized_id → label (A=AD, C=CN, F=FTD)
-  AD/   # 25 .npy files, Alzheimer's Disease
-  CN/   # 28 .npy files, Control Normal
-  FTD/  # 16 .npy files, Frontotemporal Dementia
+  AD/   # 25 .npy files — shape (19, T), float64, 500 Hz
+  CN/   # 28 .npy files — 13 labeled in CSV; remaining are unlabeled/test
+  FTD/  # 16 .npy files
+features_cache/             # created by precompute_features.py
+  {id}_rbp.npy              # (n_epochs, 30, 5, 19) float32
+  {id}_scc.npy              # (n_epochs, 30, 5, 19) float32
+  manifest.json             # {id: {label, n_epochs, class_dir, norm_mu, norm_sigma}}
 ```
 
-Each `.npy` file is an EEG recording for one subject (~8–24 MB). Labels map anonymized subject IDs to one of three classes.
+## Architecture
 
-## Stack
+```
+src/config.py      — all paths, hyperparameters, device selection (MPS → CUDA → CPU)
+src/features.py    — segment_recording() + extract_features() (pure NumPy/SciPy/pywt)
+src/cache.py       — one-time: raw .npy → normalize → epoch → extract → save cache
+src/dataset.py     — EEGDataset: loads cached features, returns (rbp, scc, label) per epoch
+src/model.py       — DICENet: CNNBranch×2 + Linear projection + TransformerEncoder + head
+src/train.py       — run_loocv(): LOOCV loop, early stopping, subject-level aggregation
+src/evaluate.py    — compute_metrics(): accuracy, sensitivity, specificity, F1, AUC (pure NumPy)
+scripts/precompute_features.py  — CLI entry for cache.precompute_all()
+scripts/train_ad_cn.py          — CLI entry for train.run_loocv() + evaluate.print_results_table()
+```
 
-No tooling is established yet. The expected Python stack:
-- `numpy`, `scipy` — signal processing
-- `mne` — EEG-specific preprocessing
-- `scikit-learn`, `pytorch`, or `tensorflow` — modeling
+### Key data shapes
 
-Update this file once `requirements.txt` / `pyproject.toml` and project structure exist.
+| Stage | Shape | Notes |
+|-------|-------|-------|
+| Raw recording | `(19, T)` | T varies; ~15k–640k samples |
+| After `segment_recording` | `(19, 15000)` | one 30-second epoch |
+| After `extract_features` | `rbp, scc: (30, 5, 19)` | 30 sub-windows × 5 freq bands × 19 channels |
+| Cached per subject | `(n_epochs, 30, 5, 19)` | n_epochs ≈ 2–26 |
+| Model input | `(B, 30, 5, 19)` × 2 | one RBP + one SCC tensor |
+| Model output | `(B, 1)` | raw logit; sigmoid for probability |
+
+### Model design notes
+
+- `CNNBranch`: `Conv3d(1→32→64→128)` + `AvgPool3d(k=(1,2,3), stride=(1,2,2))` → reshape to `(B, 30, 1024)`. `AdaptiveAvgPool3d` is intentionally avoided — not implemented on MPS.
+- Dual branches concatenated → `Linear(2048→128)` + learnable positional embedding → `TransformerEncoder(d=128, heads=4, layers=2)` → global avg pool → classification head.
+- Loss: `BCEWithLogitsLoss(pos_weight=n_CN/n_AD)` computed fresh per LOOCV fold.
+- Subject-level prediction: mean probability across all epochs of the held-out subject.

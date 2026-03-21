@@ -95,11 +95,11 @@ def run_loocv(manifest: dict) -> list[tuple]:
     device       = cfg.DEVICE
 
     cfg.CKPT_DIR.mkdir(parents=True, exist_ok=True)
-    ckpt_path = cfg.CKPT_DIR / "best_fold.pt"
 
     fold_results = []
 
     for fold_idx, val_sid in enumerate(all_subjects):
+        ckpt_path = cfg.CKPT_DIR / f"best_fold_{fold_idx}.pt"
         train_sids = [s for s in all_subjects if s != val_sid]
         true_label = label_map[manifest[val_sid]["label"]]
 

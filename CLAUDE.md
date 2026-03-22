@@ -9,9 +9,11 @@ EEG-based neurological condition classification challenge (AD / CN / FTD). The f
 ## Execution Order
 
 ```bash
-pip install PyWavelets              # one-time dep not bundled with Python
+pip install -r requirements.txt         # one-time deps
 python scripts/precompute_features.py   # ~5-15 min; run once
-python scripts/train_ad_cn.py           # LOOCV training + evaluation
+python scripts/predict.py              # LOOCV + multi-seed ensemble + test predictions
+python scripts/ensemble.py             # meta-ensemble analysis (DICE-net + XGBoost)
+python scripts/visualize.py            # interpretability plots → output/
 ```
 
 ## Data Layout
@@ -38,8 +40,13 @@ src/dataset.py     — EEGDataset: loads cached features, returns (rbp, scc, lab
 src/model.py       — DICENet: CNNBranch×2 + Linear projection + TransformerEncoder + head
 src/train.py       — run_loocv(): LOOCV loop, early stopping, subject-level aggregation
 src/evaluate.py    — compute_metrics(): accuracy, sensitivity, specificity, F1, AUC (pure NumPy)
+src/inference.py   — precompute_test_features() + predict_subjects()
 scripts/precompute_features.py  — CLI entry for cache.precompute_all()
 scripts/train_ad_cn.py          — CLI entry for train.run_loocv() + evaluate.print_results_table()
+scripts/predict.py              — multi-seed ensemble: LOOCV + train final models + test predictions
+scripts/ensemble.py             — meta-ensemble: combine DICE-net + XGBoost LOOCV predictions
+scripts/visualize.py            — interpretability plots (confusion matrices, ROC, confidence, band power)
+notebooks/pipeline.ipynb        — reproducible Jupyter notebook for presentation
 ```
 
 ### Key data shapes

@@ -165,21 +165,22 @@ def run_loocv(manifest: dict) -> list[tuple]:
     return fold_results
 
 
-def train_final_model(manifest: dict, n_epochs: int | None = None) -> str:
+def train_final_model(manifest: dict, n_epochs: int | None = None, seed: int = cfg.SEED) -> str:
     """
     Train a single model on ALL labeled subjects (no held-out).
 
     Args:
         manifest:  Dict from manifest.json.
         n_epochs:  Training epochs.  If None, uses cfg.N_EPOCHS.
+        seed:      Random seed for reproducibility.
 
     Returns:
         Path to the saved checkpoint.
     """
-    set_seed()
+    set_seed(seed)
     device = cfg.DEVICE
     cfg.CKPT_DIR.mkdir(parents=True, exist_ok=True)
-    ckpt_path = cfg.CKPT_DIR / "final_model.pt"
+    ckpt_path = cfg.CKPT_DIR / f"final_model_seed{seed}.pt"
 
     all_sids = list(manifest.keys())
     n_train = n_epochs if n_epochs is not None else cfg.N_EPOCHS

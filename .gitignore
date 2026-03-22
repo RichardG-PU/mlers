@@ -27,3 +27,9 @@ build/
 *.pkl
 *.pt
 *.ckpt
+
+# Generated output
+output/
+predictions.csv
+features_cache/
+.gstack/

@@ -155,7 +155,7 @@ def run_loocv(manifest: dict) -> list[tuple]:
                 break
 
         # Load best weights → subject-level prediction
-        model.load_state_dict(torch.load(ckpt_path, map_location=device))
+        model.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=True))
         pred_label, mean_prob = _subject_predict(model, val_loader, device)
 
         fold_results.append((val_sid, true_label, pred_label, mean_prob))
@@ -182,7 +182,7 @@ def train_final_model(manifest: dict, n_epochs: int | None = None) -> str:
     ckpt_path = cfg.CKPT_DIR / "final_model.pt"
 
     all_sids = list(manifest.keys())
-    n_train = n_epochs or cfg.N_EPOCHS
+    n_train = n_epochs if n_epochs is not None else cfg.N_EPOCHS
 
     print(f"\nTraining final model on all {len(all_sids)} subjects for {n_train} epochs...")
 

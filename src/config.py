@@ -38,7 +38,7 @@ N_LAYERS    = 2
 D_FF        = 256
 DROPOUT     = 0.1
 
-# After AdaptiveAvgPool3d the spatial dims are (N_WINDOWS, pool_bands, pool_ch)
+# After AvgPool3d the spatial dims are (N_WINDOWS, pool_bands, pool_ch)
 POOL_BANDS  = 2
 POOL_CH     = 4
 # Single-branch flattened dim: CNN_FILTERS[-1] * POOL_BANDS * POOL_CH

@@ -27,3 +27,17 @@ build/
 *.pkl
 *.pt
 *.ckpt
+
+# Generated feature caches (rebuild with: python scripts/precompute_features.py)
+features_cache/
+test_features_cache/
+
+# Checkpoints
+checkpoints/
+
+# Output files
+predictions.csv
+output/
+
+# gstack
+.gstack/

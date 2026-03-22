@@ -93,7 +93,7 @@ def predict_subjects(
     """
     device = cfg.DEVICE
     model = DICENet().to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
     results = []

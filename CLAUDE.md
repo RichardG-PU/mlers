@@ -59,3 +59,9 @@ scripts/train_ad_cn.py          — CLI entry for train.run_loocv() + evaluate.p
 - Dual branches concatenated → `Linear(2048→128)` + learnable positional embedding → `TransformerEncoder(d=128, heads=4, layers=2)` → global avg pool → classification head.
 - Loss: `BCEWithLogitsLoss(pos_weight=n_CN/n_AD)` computed fresh per LOOCV fold.
 - Subject-level prediction: mean probability across all epochs of the held-out subject.
+
+## gstack
+
+Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
+
+Available skills: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/review`, `/ship`, `/browse`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`.

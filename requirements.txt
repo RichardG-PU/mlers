@@ -4,3 +4,5 @@ pandas>=2.0
 torch>=2.0
 PyWavelets>=1.4
 matplotlib>=3.7
+xgboost>=2.0
+scikit-learn>=1.3

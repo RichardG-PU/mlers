@@ -28,8 +28,6 @@ build/
 *.pt
 *.ckpt
 
-# Generated output
-output/
-predictions.csv
+# Temp/cache
 features_cache/
 .gstack/
